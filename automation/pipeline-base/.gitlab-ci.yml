@@ -1,0 +1,38 @@
+# Estágios padrão para build e envio de imagem
+stages:
+  - build
+  - push
+
+# Variáveis comuns para acesso ao ECR
+variables:
+  AWS_REGION: "us-east-2"
+  ECR_REPOSITORY: "598723879413.dkr.ecr.$AWS_REGION.amazonaws.com"
+
+# Job de build da imagem Docker
+build_image:
+  stage: build
+  script:
+    - echo "Building Docker image..."
+    - docker build -t $IMAGE_NAME -f $DOCKERFILE .
+  only:
+    - master
+  tags:
+    - hom
+
+# Job para enviar a imagem ao AWS ECR
+push_to_ecr:
+  stage: push
+  script:
+    - echo "Authenticating with AWS ECR..."
+    - aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $ECR_REPOSITORY
+
+    - echo "Tagging and pushing image to ECR..."
+    - docker tag $IMAGE_NAME:latest $ECR_REPOSITORY/$IMAGE_NAME:latest
+    - docker push $ECR_REPOSITORY/$IMAGE_NAME:latest
+
+    - docker tag $IMAGE_NAME:latest $ECR_REPOSITORY/$IMAGE_NAME:$CI_COMMIT_SHA
+    - docker push $ECR_REPOSITORY/$IMAGE_NAME:$CI_COMMIT_SHA
+  only:
+    - master
+  tags:
+    - hom

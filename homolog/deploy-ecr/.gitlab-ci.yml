@@ -1,0 +1,28 @@
+# Inclui a pipeline base
+include:
+  - project: "automation/pipeline-base"
+    file: "pipeline-base/.gitlab-ci.yml"
+
+# Define variáveis específicas do projeto para os ambientes
+variables:
+  IMAGE_NAME: "task-deploy"                
+  DOCKERFILE: "Dockerfile" 
+  CLUSTER: "teste-deploy"
+  SERVICE: "deploy-task"                
+
+# Estágios adicionais da pipeline do projeto
+stages:
+  - build  
+  - push  
+  - deploy 
+
+# Job de deploy, que força nova atualização do serviço ECS
+deploy_to_ecs:
+  stage: deploy
+  script:
+    - echo "Updating ECS service with new image..."
+    - aws ecs update-service --cluster $CLUSTER --service $SERVICE --force-new-deployment
+  only:
+    - master
+  tags:
+    - deploy
